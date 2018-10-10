@@ -1,0 +1,74 @@
+body {
+	margin: 15 15 15 15;
+	padding: 15px 15px 15px 15px;
+}
+
+.App {
+	text-align: center;
+}
+
+.App-logo {
+	animation: App-logo-spin infinite 20s linear;
+	height: 80px;
+}
+
+.App-header {
+	background-color: #222;
+	height: 150px;
+	padding: 20px;
+	color: white;
+}
+
+.App-title {
+	font-size: 1.5em;
+}
+
+.App-intro {
+	font-size: large;
+}
+
+@keyframes App-logo-spin {
+	from {
+		transform: rotate(0deg);
+	}
+
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.h1s-light {
+	color: white !important;
+	filter: drop-shadow(0 0 1px #2b002b) drop-shadow(0 0 2px #c0c)
+		drop-shadow(0 0 1px #f0f) !important;
+	-webkit-filter: drop-shadow(0 0 1px #2b002b) drop-shadow(0 0 2px #c0c)
+		drop-shadow(0 0 1px #f0f) !important;
+}
+
+.fency-table {
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.fency-table td,
+.fency-table th {
+	border: 1px solid #ddd;
+	padding: 8px;
+}
+
+.fency-table tr:nth-child(even) {
+	background-color: #f2f2f2;
+}
+
+.fency-table tr:hover {
+	background-color: #ddd;
+}
+
+.fency-table th {
+	padding-top: 12px;
+	padding-bottom: 12px;
+	text-align: left;
+	background-color: #3f51b5;
+	color: white;
+}

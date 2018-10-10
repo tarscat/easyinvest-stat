@@ -1,0 +1,40 @@
+{
+	"name": "easyinvest-stat-app",
+	"version": "1.0.0",
+	"description": "",
+	"dependencies": {
+		"@material-ui/core": "^3.1.1",
+		"@material-ui/icons": "^3.0.1",
+		"node-fetch": "^2.2.0",
+		"query-string": "^6.2.0",
+		"react": "^16.4.0",
+		"react-dom": "^16.4.0",
+		"react-router-dom": "^4.3.1",
+		"react-scripts": "1.1.4",
+		"react-spinners": "^0.4.5",
+		"react-url-query": "^1.4.0",
+		"truffle-contract": "^3.0.6",
+		"web3": "^1.0.0-beta.36"
+	},
+	"scripts": {
+		"start": "react-scripts start",
+		"build": "react-scripts build",
+		"test": "react-scripts test --env=jsdom",
+		"eject": "react-scripts eject",
+		"predeploy": "npm run build",
+		"deploy": "gh-pages -d build"
+	},
+	"keywords": [
+		"EasyInvest10"
+	],
+	"author": "Meerkat",
+	"license": "MIT",
+	"devDependencies": {
+		"eslint-config-prettier": "^3.1.0",
+		"eslint-plugin-prettier": "^2.7.0",
+		"husky": "^1.0.1",
+		"lint-staged": "^7.3.0",
+		"prettier": "^1.14.3",
+		"pretty-quick": "^1.7.0"
+	}
+}
