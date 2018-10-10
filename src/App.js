@@ -77,8 +77,8 @@ class App extends Component {
 			console.log(`match account: ${this.props.match.params.account}`);
 		}
 
-		let account = this.props.address || this.props.id; 
-    console.log("query: "+ account);
+		let account = this.props.address || this.props.id;
+		console.log("query: " + account);
 		try {
 			if (!account) {
 				account = await this.web3.eth.getCoinbase();
@@ -376,7 +376,14 @@ class App extends Component {
 													</td>
 												</tr>
 												<tr>
-													<td>Time (return)</td>
+													<td>
+														{" "}
+														<Tooltip title="The time you will take all your invested fund back">
+															<label>
+																Time (return)
+															</label>
+														</Tooltip>
+													</td>
 													<td>
 														{this.state.returnTime}
 													</td>
