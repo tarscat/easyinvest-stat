@@ -128,6 +128,12 @@ class App extends Component {
 				console.log(`investor -- ${investorAddress} --`);
 				wei = await x.invested(investorAddress).call();
 				let investedFund = parseFloat(web3.utils.fromWei(wei));
+				if (investedFund == 0) {
+					console.log(`No investment`);
+					this.setState({ error: "No investment", loading: false });
+					return;
+				}
+
 				console.log(`invested: ${investedFund}`);
 
 				let oldBlock = await x.atBlock(investorAddress).call();
@@ -200,8 +206,18 @@ class App extends Component {
 
 	handleChange = event => {
 		this.setState({ search: event.target.value });
-		//investorAddressList = [event.target.value];
-		//this.bet();
+		if (event.target.value.length == 42) {
+			investorAddressList = [event.target.value];
+			this.bet();
+		}
+	};
+
+	keyPress = event => {
+		console.log(event);
+		if (event.key == "Enter") {
+			investorAddressList = [this.state.search];
+			this.bet();
+		}
 	};
 
 	formatDate(d) {
@@ -226,20 +242,6 @@ class App extends Component {
 							</Toolbar>
 						</AppBar>
 					</div>
-					{/* <div>
-						<ul>
-							<li>
-								<a href="?id=0xe79b84906abb7dde4cc81bd27bc89a7e97366c0c">
-									0xe79b84906abb7dde4cc81bd27bc89a7e97366c0c
-								</a>
-							</li>
-							<li>
-								<a href="?id=0x0779D5536c81a1512aa29F4777648570C2bD2AD3">
-									0x0779D5536c81a1512aa29F4777648570C2bD2AD3
-								</a>
-							</li>
-						</ul>
-					</div> */}
 					<div className="row">
 						<div className="col-lg-4 text-center">
 							<TextField
@@ -248,10 +250,11 @@ class App extends Component {
 								style={{ width: "400px" }}
 								value={this.state.search}
 								onChange={this.handleChange}
+								onKeyPress={this.keyPress}
 								margin="normal"
 							/>
 						</div>
-						<div className="col-lg-4 text-center">
+						{/* <div className="col-lg-4 text-center">
 							<Button
 								variant="contained"
 								color="primary"
@@ -263,7 +266,7 @@ class App extends Component {
 							>
 								Search
 							</Button>
-						</div>
+						</div> */}
 					</div>
 					<br />
 					<div className="row">
