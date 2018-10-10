@@ -1,7 +1,6 @@
 package-lock.json
 yarn.lock
-build
-.DS_Store
+
 
 # Logs
 logs
