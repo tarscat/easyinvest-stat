@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import Button from "@material-ui/core/Button";
+//import Button from "@material-ui/core/Button";
 import "./App.css";
 import Web3 from "web3";
 import fetch from "node-fetch";
@@ -8,11 +8,6 @@ import Toolbar from "@material-ui/core/Toolbar";
 import TextField from "@material-ui/core/TextField";
 import Tooltip from "@material-ui/core/Tooltip";
 import { addUrlProps, UrlQueryParamTypes } from "react-url-query";
-
-let investorAddressList = [
-	"0xe79b84906abb7dde4cc81bd27bc89a7e97366c0c",
-	"0x0779d5536c81a1512aa29f4777648570c2bd2ad3"
-];
 
 const contractAddress = "0xa25560d083fe0ea3e303c11577b5a345b236fac7";
 const urlPropsQueryConfig = {
@@ -32,6 +27,7 @@ class App extends Component {
 
 		//console.log(`p: ${p}`);
 		this.state = {
+			web3Provider: "metamask",
 			search: "",
 			account: "",
 			balance: "?",
@@ -65,6 +61,7 @@ class App extends Component {
 			this.web3Provider = new Web3.providers.HttpProvider(
 				"https://mainnet.infura.io/v3/4f648dd2d1384b7dab303f0baaed4f6f"
 			);
+			this.state.web3Provider = "infura";
 		}
 
 		this.web3 = new Web3(this.web3Provider);
@@ -80,14 +77,17 @@ class App extends Component {
 		let account = this.props.address || this.props.id;
 		console.log("query: " + account);
 		try {
-			if (!account) {
+			if (!account && this.state.web3Provider === "metamask") {
+				// only work on local web3
 				account = await this.web3.eth.getCoinbase();
 				console.log("local account: ", account);
 			}
-			investorAddressList = [account];
-			//console.log("state's account: ", this.state.account);
+			//investorAddressList = [account];
+			console.log("query2: " + account);
+			this.setState({ search: account + "" });
+			console.log("search: ", this.state.search);
 
-			await this.bet();
+			await this.bet(account);
 		} catch (ex) {
 			this.setState({ error: "No Account" });
 			console.log(ex);
@@ -95,9 +95,18 @@ class App extends Component {
 		this.setState({ loading: false });
 	}
 
-	async bet() {
+	async bet(address) {
 		try {
 			let web3 = this.web3;
+
+			const investorAddress = address || this.state.search;
+			console.log(`investor -- ${investorAddress} --`);
+			if (!investorAddress || investorAddress.length != 42) {
+				console.log(`Invaild address`);
+				this.setState({ error: "Invaild address", loading: false });
+				return;
+			}
+
 			this.setState({ loading: true });
 
 			let currentBlock = await web3.eth.getBlockNumber();
@@ -116,88 +125,83 @@ class App extends Component {
 			);
 			const x = instance.methods;
 
-			let wei = await web3.eth.getBalance(contractAddress);
+			let wei = await x.invested(investorAddress).call();
+			let investedFund = parseFloat(web3.utils.fromWei(wei));
+			if (investedFund == 0) {
+				console.log(`No investment`);
+				this.setState({ error: "No investment", loading: false });
+				return;
+			}
+
+			console.log(`invested: ${investedFund}`);
+
+			wei = await web3.eth.getBalance(contractAddress);
 			let contractBalance = parseFloat(web3.utils.fromWei(wei)).toFixed(
 				3
 			);
 			console.log(`contract balance: ${contractBalance}`);
 			console.log(`\n`);
 
-			for (var i = 0; i < investorAddressList.length; i++) {
-				const investorAddress = investorAddressList[i];
-				console.log(`investor -- ${investorAddress} --`);
-				wei = await x.invested(investorAddress).call();
-				let investedFund = parseFloat(web3.utils.fromWei(wei));
-				if (investedFund == 0) {
-					console.log(`No investment`);
-					this.setState({ error: "No investment", loading: false });
-					return;
+			let oldBlock = await x.atBlock(investorAddress).call();
+			// console.log(`block: ${oldBlock}`);
+
+			let profit = (
+				((investedFund / 10) * (currentBlock - oldBlock)) /
+				5900
+			).toFixed(3);
+			console.log(`profit: ${profit}`);
+
+			// internal tx
+			const url = `https://api.etherscan.io/api?module=account&action=txlistinternal&address=${investorAddress}&startblock=0&endblock=99999999&sort=asc&apikey=YourApiKeyToken`;
+			const internalTxs = (await (await fetch(url)).json()).result;
+			let transferOut = 0;
+			for (var j = 0; j < internalTxs.length; j++) {
+				if (internalTxs[j].from === contractAddress) {
+					transferOut += parseFloat(
+						web3.utils.fromWei(internalTxs[j].value)
+					);
 				}
-
-				console.log(`invested: ${investedFund}`);
-
-				let oldBlock = await x.atBlock(investorAddress).call();
-				// console.log(`block: ${oldBlock}`);
-
-				let profit = (
-					((investedFund / 10) * (currentBlock - oldBlock)) /
-					5900
-				).toFixed(3);
-				console.log(`profit: ${profit}`);
-
-				// internal tx
-				const url = `https://api.etherscan.io/api?module=account&action=txlistinternal&address=${investorAddress}&startblock=0&endblock=99999999&sort=asc&apikey=YourApiKeyToken`;
-				const internalTxs = (await (await fetch(url)).json()).result;
-				let transferOut = 0;
-				for (var j = 0; j < internalTxs.length; j++) {
-					if (internalTxs[j].from === contractAddress) {
-						transferOut += parseFloat(
-							web3.utils.fromWei(internalTxs[j].value)
-						);
-					}
-				}
-
-				let restFund = (investedFund - transferOut).toFixed(3);
-				console.log(`restFund: ${restFund}`);
-				investedFund = investedFund.toFixed(3);
-				transferOut = transferOut.toFixed(3);
-
-				// block time
-				let blockInvestedTime =
-					(await web3.eth.getBlock(oldBlock)).timestamp * 1000;
-
-				let currentBlockTime =
-					(await web3.eth.getBlock(currentBlock)).timestamp * 1000;
-
-				let returnTime =
-					blockInvestedTime +
-					restFund /
-						(profit / (currentBlockTime - blockInvestedTime));
-
-				blockInvestedTime = this.formatDate(blockInvestedTime);
-				currentBlockTime = this.formatDate(currentBlockTime);
-				returnTime = this.formatDate(returnTime);
-				console.log(`Time (old block):     ${blockInvestedTime}`);
-				console.log(`Time (current block): ${currentBlockTime}`);
-				console.log(`Time (return):        ${returnTime}`);
-				console.log(`\n`);
-
-				this.setState({
-					account: investorAddress,
-					oldBlock,
-					currentBlock,
-					contractBalance,
-					investedFund,
-					profit,
-					transferOut,
-					restFund,
-					blockInvestedTime,
-					currentBlockTime,
-					returnTime
-				});
 			}
 
-			this.setState({ error: "", loading: false });
+			let restFund = (investedFund - transferOut).toFixed(3);
+			console.log(`restFund: ${restFund}`);
+			investedFund = investedFund.toFixed(3);
+			transferOut = transferOut.toFixed(3);
+
+			// block time
+			let blockInvestedTime =
+				(await web3.eth.getBlock(oldBlock)).timestamp * 1000;
+
+			let currentBlockTime =
+				(await web3.eth.getBlock(currentBlock)).timestamp * 1000;
+
+			let returnTime =
+				blockInvestedTime +
+				restFund / (profit / (currentBlockTime - blockInvestedTime));
+
+			blockInvestedTime = this.formatDate(blockInvestedTime);
+			currentBlockTime = this.formatDate(currentBlockTime);
+			returnTime = this.formatDate(returnTime);
+			console.log(`Time (old block):     ${blockInvestedTime}`);
+			console.log(`Time (current block): ${currentBlockTime}`);
+			console.log(`Time (return):        ${returnTime}`);
+			console.log(`\n`);
+
+			this.setState({
+				account: investorAddress,
+				oldBlock,
+				currentBlock,
+				contractBalance,
+				investedFund,
+				profit,
+				transferOut,
+				restFund,
+				blockInvestedTime,
+				currentBlockTime,
+				returnTime,
+				error: "",
+				loading: false
+			});
 		} catch (ex) {
 			console.log(ex);
 			this.setState({ error: "ERROR", loading: false });
@@ -205,17 +209,17 @@ class App extends Component {
 	}
 
 	handleChange = event => {
-		this.setState({ search: event.target.value });
+		this.setState({ search: event.target.value || "" });
 		if (event.target.value.length == 42) {
-			investorAddressList = [event.target.value];
-			this.bet();
+			//investorAddressList = [event.target.value];
+			this.bet(event.target.value);
 		}
 	};
 
 	keyPress = event => {
-		console.log(event);
+		//console.log(event);
 		if (event.key == "Enter") {
-			investorAddressList = [this.state.search];
+			//investorAddressList = [this.state.search];
 			this.bet();
 		}
 	};
@@ -232,6 +236,7 @@ class App extends Component {
 						<AppBar position="static">
 							<Toolbar>
 								<img
+									alt=""
 									src="https://easyinvest10.app/images/apple-icon.png"
 									style={{ width: "32px" }}
 								/>
@@ -276,7 +281,7 @@ class App extends Component {
 							) : (
 								<div>
 									{this.state.error ? (
-										<p>No Result!</p>
+										<p>{this.state.error}</p>
 									) : (
 										<table className="fency-table">
 											<thead>
@@ -302,7 +307,12 @@ class App extends Component {
 													</td>
 												</tr>
 												<tr>
-													<td>Real-time Profit 🔥</td>
+													<td>
+														Real-time Profit{" "}
+														<span role="img">
+															🔥
+														</span>
+													</td>
 													<td>
 														{this.state.profit} ETH
 													</td>
@@ -310,16 +320,20 @@ class App extends Component {
 												<tr>
 													<td>Block (Invested)</td>
 													<td>
-														{this.state.oldBlock}
+														{this.state.oldBlock +
+															" ⏰ " +
+															this.state
+																.blockInvestedTime}
 													</td>
 												</tr>
 												<tr>
 													<td>Block (Current)</td>
 													<td>
-														{
+														{this.state
+															.currentBlock +
+															" ⏰ " +
 															this.state
-																.currentBlock
-														}
+																.currentBlockTime}
 													</td>
 												</tr>
 												{/* <tr>
@@ -339,7 +353,12 @@ class App extends Component {
 													</td>
 												</tr>
 												<tr>
-													<td>Transfer Out 🍺</td>
+													<td>
+														Transfer Out{" "}
+														<span role="img">
+															🍺
+														</span>
+													</td>
 													<td>
 														{this.state.transferOut}{" "}
 														ETH
@@ -349,7 +368,10 @@ class App extends Component {
 													<td>
 														<Tooltip title=" Rest Fund = Invested Fund - Transfer Out">
 															<label>
-																Rest Fund 💰
+																Rest Fund{" "}
+																<span role="img">
+																	💰
+																</span>
 															</label>
 														</Tooltip>
 													</td>
@@ -358,7 +380,7 @@ class App extends Component {
 														ETH
 													</td>
 												</tr>
-												<tr>
+												{/* <tr>
 													<td>Time (last block)</td>
 													<td>
 														{
@@ -377,13 +399,16 @@ class App extends Component {
 																.currentBlockTime
 														}
 													</td>
-												</tr>
+												</tr> */}
 												<tr>
 													<td>
 														{" "}
 														<Tooltip title="The time you will take all your invested fund back">
 															<label>
-																Time (return)
+																Time (return){" "}
+																<span role="img">
+																	⏰
+																</span>
 															</label>
 														</Tooltip>
 													</td>
